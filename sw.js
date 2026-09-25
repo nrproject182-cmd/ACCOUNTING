@@ -1,5 +1,5 @@
-/* Dompet Rantau — Service Worker v3.6.3 */
-const CACHE = 'dr-static-v3.6.3';
+/* Dompet Rantau — Service Worker v3.10.1 */
+const CACHE = 'dr-static-v3.10.1';
 const ASSETS = ['./index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
@@ -19,13 +19,11 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
 
-  // version.json SELALU dari jaringan (jangan di-cache) supaya cek update akurat
   if (url.pathname.endsWith('version.json')) {
     e.respondWith(fetch(e.request, { cache: 'no-store' }).catch(() => Response.error()));
     return;
   }
 
-  // Navigasi (buka halaman): network-first
   if (e.request.mode === 'navigate') {
     e.respondWith((async () => {
       try {
@@ -43,7 +41,6 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Aset lokal + font Google: stale-while-revalidate
   if (url.origin === location.origin || /fonts\.(googleapis|gstatic)\.com$/.test(url.hostname)) {
     e.respondWith((async () => {
       const cache = await caches.open(CACHE);
