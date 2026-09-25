@@ -1,5 +1,5 @@
-/* Dompet Rantau — Service Worker v3.10.1 */
-const CACHE = 'dr-static-v3.10.1';
+/* Dompet Rantau — Service Worker v3.11.0 */
+const CACHE = 'dr-static-v3.11.0';
 const ASSETS = ['./index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
