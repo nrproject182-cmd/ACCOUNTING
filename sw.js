@@ -1,12 +1,115 @@
-/* Dompet Rantau — Service Worker v3.15.0 */
-const CACHE = 'dr-static-v3.15.0';
-const ASSETS = ['./index.html', './manifest.json', './icon.svg'];
-self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS))); self.skipWaiting(); });
-self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
-self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
-  const url = new URL(e.request.url);
-  if (url.pathname.endsWith('version.json')) { e.respondWith(fetch(e.request, { cache: 'no-store' }).catch(() => Response.error())); return; }
-  if (e.request.mode === 'navigate') { e.respondWith((async () => { try { const res = await fetch(e.request); if (res.ok) { const c = await caches.open(CACHE); c.put('./index.html', res.clone()); } return res; } catch (err) { return (await caches.match('./index.html')) || Response.error(); } })()); return; }
-  if (url.origin === location.origin || /fonts\.(googleapis|gstatic)\.com$/.test(url.hostname)) { e.respondWith((async () => { const cache = await caches.open(CACHE); const hit = await cache.match(e.request); const refresh = fetch(e.request).then(res => { if (res.ok) cache.put(e.request, res.clone()); return res; }).catch(() => null); return hit || (await refresh) || Response.error(); })()); }
+// ============================================
+// SERVICE WORKER - Dompet Rantau
+// ============================================
+const CACHE_VERSION = 'dr-cache-v3.15.1';
+const APP_SHELL = [
+  './',
+  './index.html',
+];
+
+// INSTALL: Cache app shell
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_VERSION).then(cache => {
+      return cache.addAll(APP_SHELL).catch(err => {
+        console.log('SW: gagal cache beberapa asset', err);
+      });
+    })
+  );
+  self.skipWaiting(); // langsung aktifin, ga usah nunggu
+});
+
+// ACTIVATE: Bersihkan cache versi lama
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys => {
+      return Promise.all(
+        keys.filter(key => key !== CACHE_VERSION).map(key => caches.delete(key))
+      );
+    })
+  );
+  self.clients.claim();
+});
+
+// FETCH: Strategi hybrid
+self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
+  
+  const url = new URL(event.request.url);
+  const isSameOrigin = url.origin === location.origin;
+  
+  // 1. version.json - network only (buat check update)
+  if (url.pathname.endsWith('version.json')) {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        return new Response(JSON.stringify({ version: null }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      })
+    );
+    return;
+  }
+  
+  // 2. Google Fonts - Cache first dengan update di background
+  if (url.hostname.includes('fonts.googleapis.com') || url.hostname.includes('fonts.gstatic.com')) {
+    event.respondWith(
+      caches.open(CACHE_VERSION).then(cache => {
+        return cache.match(event.request).then(cached => {
+          const fetchPromise = fetch(event.request).then(response => {
+            if (response && response.status === 200) {
+              cache.put(event.request, response.clone());
+            }
+            return response;
+          }).catch(() => cached); // kalau offline, pake cached
+          return cached || fetchPromise;
+        });
+      })
+    );
+    return;
+  }
+  
+  // 3. App shell & static assets - Cache first
+  if (isSameOrigin) {
+    event.respondWith(
+      caches.match(event.request).then(cached => {
+        return cached || fetch(event.request).then(response => {
+          // Cache asset baru yang belum ada di cache
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_VERSION).then(cache => {
+              cache.put(event.request, clone);
+            });
+          }
+          return response;
+        }).catch(() => {
+          // Kalau gagal network & ga ada cache, fallback ke index.html (buat navigation)
+          if (event.request.destination === 'document') {
+            return caches.match('./index.html');
+          }
+          return new Response('Offline', { status: 503 });
+        });
+      })
+    );
+    return;
+  }
+  
+  // 4. Request eksternal lain - network first, fallback ke cache
+  event.respondWith(
+    fetch(event.request)
+      .then(response => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_VERSION).then(cache => cache.put(event.request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
+  );
+});
+
+// Message handler buat update manual
+self.addEventListener('message', event => {
+  if (event.data === 'skipWaiting') {
+    self.skipWaiting();
+  }
 });

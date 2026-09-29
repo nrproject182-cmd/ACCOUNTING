@@ -1,16 +1,19 @@
 {
-  "name": "Dompet Rantau — Catatan Uang Perjalanan",
-  "short_name": "Dompet Rantau",
-  "description": "Catatan uang masuk & keluar harian selama di luar kota. Offline-first, multi-dompet.",
-  "lang": "id",
-  "start_url": "./",
+  "name": "Dompet Rantau",
+  "short_name": "Dompet",
+  "description": "Catatan uang masuk & keluar offline untuk perjalanan",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
-  "theme_color": "#0D3B2E",
   "background_color": "#F4F6F2",
+  "theme_color": "#0D3B2E",
+  "orientation": "portrait",
   "icons": [
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
   ]
 }
