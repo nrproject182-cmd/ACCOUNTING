@@ -1,7 +1,7 @@
 // ============================================
 // SERVICE WORKER - Dompet Rantau
 // ============================================
-const CACHE_VERSION = 'dr-cache-v3.28.0';
+const CACHE_VERSION = 'dr-cache-v3.33.0';
 const APP_SHELL = [
   './',
   './index.html',
